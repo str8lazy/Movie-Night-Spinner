@@ -9,7 +9,7 @@
         <div class="banner">Movie Night Spinner</div>
         <div class="container">
             <div class="wheel-section">
-                <canvas id="wheelCanvas" width="750" height="750"></canvas>
+                <canvas id="wheelCanvas"></canvas>
             </div>
             <div class="input-section">
                 <textarea id="entry" rows="5" cols="30" placeholder="Enter items (one per line)" onkeyup="handleKeyUp(event)"></textarea>
@@ -265,6 +265,40 @@
 
         // Initial wheel draw
         drawWheel();
+
+        function resizeWheel() {
+            const container = document.querySelector('.wheel-section');
+            const containerWidth = container.clientWidth;
+            const containerHeight = window.innerHeight * 0.7; // 70% of viewport height
+            
+            // Calculate the smallest dimension to maintain aspect ratio
+            const size = Math.min(containerWidth, containerHeight);
+            
+            canvas.width = size;
+            canvas.height = size;
+            
+            // Redraw wheel with new dimensions
+            drawWheel();
+        }
+
+        // Add resize event listener
+        window.addEventListener('resize', debounce(resizeWheel, 250));
+
+        // Debounce function to prevent excessive resizing
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Call resizeWheel on initial load
+        document.addEventListener('DOMContentLoaded', resizeWheel);
     </script>
 </body>
 </html>
