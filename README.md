@@ -9,6 +9,7 @@ A stylish web-based movie selector that helps groups decide what to watch. Simpl
 - Easy-to-use interface for adding movie entries
 - Celebratory winner announcement with visual effects
 - Responsive layout that works on various screen sizes
+- Persistent winner history displayed in stylish walls on either side of the wheel.
 
 ## How to Use
 
@@ -23,7 +24,7 @@ A stylish web-based movie selector that helps groups decide what to watch. Simpl
 Built using vanilla:
 - HTML5
 - CSS3 (with modern animations and effects)
-- JavaScript (for wheel animation and interaction)
+- JavaScript (for wheel animation, interaction, and saving history with `localStorage`)
 
 No external dependencies or installation required - just open the HTML file in a modern web browser.
 

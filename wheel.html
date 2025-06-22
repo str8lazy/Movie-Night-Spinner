@@ -5,6 +5,8 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div id="left-wall" class="winner-wall"></div>
+    <div id="right-wall" class="winner-wall"></div>
     <div class="content-wrapper">
         <div class="banner">Movie Night Spinner</div>
         <div class="container">
@@ -27,6 +29,7 @@
 
     <script>
         let entries = [];
+        let winners = [];
         let rotating = false;
         let currentRotation = 0;
         const canvas = document.getElementById('wheelCanvas');
@@ -191,7 +194,70 @@
             }
         }
 
+        function updateWallFontSize() {
+            const walls = document.querySelectorAll('.winner-wall');
+            let fontSize = '12px';
+
+            if (winners.length > 80) {
+                fontSize = '8px';
+            } else if (winners.length > 40) {
+                fontSize = '10px';
+            }
+
+            walls.forEach(wall => wall.style.fontSize = fontSize);
+        }
+
+        function addWinnerToWall(winner, winnerIndex) {
+            const leftWall = document.getElementById('left-wall');
+            const rightWall = document.getElementById('right-wall');
+            if (!leftWall || !rightWall) return;
+
+            // We will fill the left wall first, which has a capacity of roughly 80 entries
+            // across its two columns, before moving to the right wall.
+            const LEFT_WALL_CAPACITY = 80;
+
+            const targetWall = (winnerIndex < LEFT_WALL_CAPACITY) ? leftWall : rightWall;
+
+            const winnerEl = document.createElement('div');
+            winnerEl.classList.add('wall-winner-item');
+
+            const titleEl = document.createElement('span');
+            titleEl.classList.add('winner-movie-title');
+            titleEl.textContent = winner.name;
+            titleEl.title = winner.name; // Tooltip for full title
+
+            const dateEl = document.createElement('span');
+            dateEl.classList.add('winner-date');
+            dateEl.textContent = winner.date;
+
+            winnerEl.appendChild(titleEl);
+            winnerEl.appendChild(dateEl);
+            
+            targetWall.appendChild(winnerEl);
+        }
+
+        function loadWinners() {
+            const savedWinners = localStorage.getItem('movieNightWinners');
+            if (savedWinners) {
+                winners = JSON.parse(savedWinners);
+                winners.forEach((winner, index) => addWinnerToWall(winner, index));
+                updateWallFontSize();
+            }
+        }
+
         function showWinner(winner) {
+            const today = new Date();
+            const day = String(today.getDate()).padStart(2, '0');
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const year = today.getFullYear().toString().slice(-2);
+            const dateString = `${day}-${month}-${year}`;
+            const newWinner = { name: winner, date: dateString };
+
+            winners.push(newWinner);
+            localStorage.setItem('movieNightWinners', JSON.stringify(winners));
+            addWinnerToWall(newWinner, winners.length - 1);
+            updateWallFontSize();
+            
             const overlay = document.querySelector('.overlay');
             const winnerText = document.querySelector('.winner-text');
             winnerText.textContent = `Winner: ${winner}`;
@@ -298,7 +364,10 @@
         }
 
         // Call resizeWheel on initial load
-        document.addEventListener('DOMContentLoaded', resizeWheel);
+        document.addEventListener('DOMContentLoaded', () => {
+            resizeWheel();
+            loadWinners();
+        });
     </script>
 </body>
 </html>
