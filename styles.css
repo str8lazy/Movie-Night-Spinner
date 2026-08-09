@@ -373,4 +373,195 @@ button:active {
     }
 }
 
-/* All your existing keyframe animations and other CSS rules... */ 
+/* ----- Edit History page ----- */
+
+body.edit-page {
+    /* Allow scrolling the full history list on smaller screens */
+    position: relative;
+    overflow-y: auto;
+    display: block;
+}
+
+.edit-wrapper {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 30px;
+    background: rgba(20, 20, 30, 0.7);
+    border-radius: 10px;
+    border: 1px solid rgba(0, 255, 255, 0.1);
+    box-shadow:
+        0 0 20px rgba(0, 255, 255, 0.2),
+        inset 0 0 20px rgba(255, 0, 255, 0.2);
+    backdrop-filter: blur(5px);
+}
+
+.edit-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.edit-title {
+    margin: 0;
+    font-size: 36px;
+    font-family: 'Arial Black', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #fff;
+    text-shadow:
+        0 0 10px rgba(255, 0, 255, 0.7),
+        0 0 20px rgba(0, 255, 255, 0.5);
+}
+
+.edit-nav-link {
+    color: #0ff;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    text-decoration: none;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.7);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.4);
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.edit-nav-link:hover {
+    color: #ff00ff;
+    text-shadow: 0 0 8px rgba(255, 0, 255, 0.7);
+    border-bottom-color: rgba(255, 0, 255, 0.5);
+}
+
+.input-section .edit-nav-link {
+    align-self: center;
+    margin-top: 8px;
+}
+
+.edit-sticky-bar {
+    /* Stick toolbar + status message together while scrolling */
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    margin-bottom: 20px;
+    padding: 12px 0 4px;
+    background: rgba(20, 20, 30, 0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+}
+
+.edit-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 0;
+}
+
+.edit-sticky-bar .edit-message {
+    margin: 12px 0 8px;
+}
+
+.edit-sticky-bar .edit-message[hidden] {
+    display: none;
+    margin: 0;
+}
+
+.edit-toolbar button {
+    padding: 10px 18px;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+.edit-toolbar button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.danger-btn {
+    background: linear-gradient(45deg, #fe3a3a, #ff00ff) !important;
+}
+
+.edit-message {
+    margin: 0 0 16px;
+    padding: 10px 14px;
+    font-family: 'Courier New', monospace;
+    color: #0ff;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 5px;
+    background: rgba(10, 10, 15, 0.8);
+}
+
+.edit-message-error {
+    color: #fe3a3a;
+    border-color: rgba(254, 58, 58, 0.5);
+}
+
+.winner-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.winner-row {
+    display: grid;
+    grid-template-columns: 1fr minmax(100px, 140px) auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid rgba(0, 255, 255, 0.15);
+    border-radius: 5px;
+    background: rgba(10, 10, 15, 0.6);
+}
+
+.winner-name-input,
+.winner-date-input {
+    background: rgba(10, 10, 15, 0.8);
+    color: #0ff;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 5px;
+    padding: 10px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.15);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.winner-name-input:focus,
+.winner-date-input:focus {
+    outline: none;
+    border-color: #0ff;
+    box-shadow:
+        0 0 12px rgba(0, 255, 255, 0.3),
+        inset 0 0 8px rgba(0, 255, 255, 0.15);
+}
+
+.remove-btn {
+    padding: 8px 14px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+.empty-state {
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    color: rgba(0, 255, 255, 0.7);
+    margin: 40px 0;
+}
+
+@media (max-width: 768px) {
+    .edit-wrapper {
+        margin: 20px 12px;
+        padding: 20px;
+    }
+
+    .edit-title {
+        font-size: 28px;
+    }
+
+    .winner-row {
+        grid-template-columns: 1fr;
+    }
+}

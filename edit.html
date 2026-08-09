@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Winner History – Movie Night Spinner</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="edit-page">
+    <div class="edit-wrapper">
+        <header class="edit-header">
+            <h1 class="edit-title">Winner History</h1>
+            <a class="edit-nav-link" href="wheel.html">Back to Spinner</a>
+        </header>
+
+        <!-- Sticky bar: toolbar + status message stay visible while scrolling -->
+        <div class="edit-sticky-bar">
+            <div class="edit-toolbar">
+                <button type="button" id="undoBtn" disabled title="Ctrl/Cmd+Z">Undo</button>
+                <button type="button" id="redoBtn" disabled title="Ctrl/Cmd+Shift+Z">Redo</button>
+                <button type="button" id="exportBtn">Export JSON</button>
+                <button type="button" id="uploadBtn">Upload JSON</button>
+                <button type="button" id="clearBtn" class="danger-btn">Clear All</button>
+                <!-- Hidden file input triggered by Upload JSON -->
+                <input type="file" id="fileInput" accept=".json,application/json" hidden>
+            </div>
+
+            <p id="editMessage" class="edit-message" hidden></p>
+        </div>
+
+        <div id="winnerList" class="winner-list" aria-live="polite"></div>
+        <p id="emptyState" class="empty-state" hidden>No winners yet. Spin the wheel or upload a JSON file.</p>
+    </div>
+
+    <script>
+        // Same key used by wheel.html so both pages stay in sync.
+        const STORAGE_KEY = 'movieNightWinners';
+        // Upload safety limits — keep imports small enough for UI + localStorage.
+        const MAX_UPLOAD_BYTES = 1 * 1024 * 1024; // 1MB
+        const MAX_WINNERS = 5000;
+        const MAX_FIELD_LENGTH = 200;
+
+        let winners = [];
+        // Snapshot stacks for undo/redo. Each entry is a deep copy of winners.
+        let undoStack = [];
+        let redoStack = [];
+
+        const listEl = document.getElementById('winnerList');
+        const emptyEl = document.getElementById('emptyState');
+        const messageEl = document.getElementById('editMessage');
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const fileInput = document.getElementById('fileInput');
+
+        // Deep-copy helper so undo snapshots are independent of live edits.
+        function cloneWinners(list) {
+            return list.map(w => ({ name: w.name, date: w.date }));
+        }
+
+        function saveToStorage() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(winners));
+        }
+
+        function loadFromStorage() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) {
+                winners = [];
+                return;
+            }
+            try {
+                const parsed = JSON.parse(raw);
+                winners = Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                winners = [];
+                showMessage('Could not read saved winners. Starting with an empty list.', true);
+            }
+        }
+
+        // Push current state onto undo before applying a change.
+        function pushUndoSnapshot() {
+            undoStack.push(cloneWinners(winners));
+            redoStack = [];
+            updateToolbarState();
+        }
+
+        function updateToolbarState() {
+            undoBtn.disabled = undoStack.length === 0;
+            redoBtn.disabled = redoStack.length === 0;
+        }
+
+        function showMessage(text, isError) {
+            messageEl.textContent = text;
+            messageEl.hidden = false;
+            messageEl.classList.toggle('edit-message-error', !!isError);
+            // Auto-hide success messages after a few seconds.
+            if (!isError) {
+                clearTimeout(showMessage._timer);
+                showMessage._timer = setTimeout(() => {
+                    messageEl.hidden = true;
+                }, 4000);
+            }
+        }
+
+        function renderList() {
+            listEl.innerHTML = '';
+            emptyEl.hidden = winners.length > 0;
+
+            winners.forEach((winner, index) => {
+                const row = document.createElement('div');
+                row.className = 'winner-row';
+                row.dataset.index = String(index);
+
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.className = 'winner-name-input';
+                nameInput.value = winner.name;
+                nameInput.setAttribute('aria-label', `Movie name ${index + 1}`);
+                // Commit edit on blur so undo captures the finished change.
+                nameInput.addEventListener('focus', () => {
+                    nameInput.dataset.before = nameInput.value;
+                });
+                nameInput.addEventListener('blur', () => {
+                    const next = nameInput.value.trim();
+                    const before = nameInput.dataset.before || '';
+                    if (next === before) return;
+                    if (!next) {
+                        // Keep a non-empty name; restore previous value.
+                        nameInput.value = before;
+                        showMessage('Name cannot be empty.', true);
+                        return;
+                    }
+                    pushUndoSnapshot();
+                    winners[index].name = next;
+                    saveToStorage();
+                    showMessage('Name updated.');
+                });
+
+                const dateInput = document.createElement('input');
+                dateInput.type = 'text';
+                dateInput.className = 'winner-date-input';
+                dateInput.value = winner.date;
+                dateInput.setAttribute('aria-label', `Date ${index + 1}`);
+                dateInput.addEventListener('focus', () => {
+                    dateInput.dataset.before = dateInput.value;
+                });
+                dateInput.addEventListener('blur', () => {
+                    const next = dateInput.value.trim();
+                    const before = dateInput.dataset.before || '';
+                    if (next === before) return;
+                    if (!next) {
+                        dateInput.value = before;
+                        showMessage('Date cannot be empty.', true);
+                        return;
+                    }
+                    pushUndoSnapshot();
+                    winners[index].date = next;
+                    saveToStorage();
+                    showMessage('Date updated.');
+                });
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'danger-btn remove-btn';
+                removeBtn.textContent = 'Remove';
+                removeBtn.addEventListener('click', () => {
+                    pushUndoSnapshot();
+                    winners.splice(index, 1);
+                    saveToStorage();
+                    renderList();
+                    showMessage('Winner removed.');
+                });
+
+                row.appendChild(nameInput);
+                row.appendChild(dateInput);
+                row.appendChild(removeBtn);
+                listEl.appendChild(row);
+            });
+        }
+
+        function undo() {
+            if (undoStack.length === 0) return;
+            redoStack.push(cloneWinners(winners));
+            winners = undoStack.pop();
+            saveToStorage();
+            updateToolbarState();
+            renderList();
+            showMessage('Undone.');
+        }
+
+        function redo() {
+            if (redoStack.length === 0) return;
+            undoStack.push(cloneWinners(winners));
+            winners = redoStack.pop();
+            saveToStorage();
+            updateToolbarState();
+            renderList();
+            showMessage('Redone.');
+        }
+
+        function exportJson() {
+            const blob = new Blob([JSON.stringify(winners, null, 2)], {
+                type: 'application/json'
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'movie-night-winners.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showMessage('Exported movie-night-winners.json');
+        }
+
+        // Validate imported JSON: must be an array of { name, date } strings.
+        function validateWinnersPayload(data) {
+            if (!Array.isArray(data)) {
+                return 'JSON must be an array of winners.';
+            }
+            if (data.length > MAX_WINNERS) {
+                return `Too many winners (max ${MAX_WINNERS}).`;
+            }
+            for (let i = 0; i < data.length; i++) {
+                const item = data[i];
+                // Reject arrays/null; only plain objects with string fields.
+                if (!item || typeof item !== 'object' || Array.isArray(item)) {
+                    return `Item ${i + 1} must be an object.`;
+                }
+                if (typeof item.name !== 'string' || typeof item.date !== 'string') {
+                    return `Item ${i + 1} needs string "name" and "date" fields.`;
+                }
+                if (item.name.length > MAX_FIELD_LENGTH || item.date.length > MAX_FIELD_LENGTH) {
+                    return `Item ${i + 1} has a field longer than ${MAX_FIELD_LENGTH} characters.`;
+                }
+            }
+            return null;
+        }
+
+        function handleFileUpload(file) {
+            if (!file) return;
+            // Reject oversized files before reading into memory.
+            if (file.size > MAX_UPLOAD_BYTES) {
+                showMessage('File is too large (max 1MB). Nothing was changed.', true);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+                let parsed;
+                try {
+                    parsed = JSON.parse(reader.result);
+                } catch (e) {
+                    showMessage('Invalid JSON file. Nothing was changed.', true);
+                    return;
+                }
+                const error = validateWinnersPayload(parsed);
+                if (error) {
+                    showMessage(error + ' Nothing was changed.', true);
+                    return;
+                }
+                const count = parsed.length;
+                if (!confirm(`Replace current history with ${count} winner(s) from this file?`)) {
+                    return;
+                }
+                pushUndoSnapshot();
+                // Normalize to only name/date so extra fields are dropped.
+                winners = parsed.map(w => ({ name: w.name, date: w.date }));
+                saveToStorage();
+                renderList();
+                showMessage(`Imported ${count} winner(s).`);
+            };
+            reader.onerror = () => {
+                showMessage('Could not read the file.', true);
+            };
+            reader.readAsText(file);
+        }
+
+        function clearAll() {
+            if (winners.length === 0) {
+                showMessage('List is already empty.');
+                return;
+            }
+            if (!confirm('Clear all winner history? This can be undone.')) return;
+            pushUndoSnapshot();
+            winners = [];
+            saveToStorage();
+            renderList();
+            showMessage('History cleared.');
+        }
+
+        // Shortcuts only when not typing in an input (avoid fighting browser undo).
+        function isTypingInField() {
+            const el = document.activeElement;
+            if (!el) return false;
+            const tag = el.tagName;
+            return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable;
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (isTypingInField()) return;
+            const mod = event.ctrlKey || event.metaKey;
+            if (!mod) return;
+            const key = event.key.toLowerCase();
+            if (key === 'z' && !event.shiftKey) {
+                event.preventDefault();
+                undo();
+            } else if ((key === 'z' && event.shiftKey) || key === 'y') {
+                event.preventDefault();
+                redo();
+            }
+        });
+
+        undoBtn.addEventListener('click', undo);
+        redoBtn.addEventListener('click', redo);
+        exportBtn.addEventListener('click', exportJson);
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        clearBtn.addEventListener('click', clearAll);
+        fileInput.addEventListener('change', () => {
+            const file = fileInput.files && fileInput.files[0];
+            handleFileUpload(file);
+            // Reset so the same file can be chosen again later.
+            fileInput.value = '';
+        });
+
+        // Initial load
+        loadFromStorage();
+        updateToolbarState();
+        renderList();
+    </script>
+</body>
+</html>
